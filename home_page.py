@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from starlette import status
 from sqlalchemy.orm import Session
 from typing import Annotated, List, Optional
@@ -77,6 +77,31 @@ class SaveFilterRequest(BaseModel):
 
 class SaveFilterResponse(BaseModel):
     search_id: str
+
+
+class DishResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    price: float
+    weight: Optional[float]
+    image_url: Optional[str]
+
+    class Config:
+        from_attributes = True
+
+
+class RestaurantDetailsResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    image_url: Optional[str]
+    rating: float
+    delivery_time: Optional[int]
+    dishes: List[DishResponse]
+
+    class Config:
+        from_attributes = True
 
 
 @router.get("/restaurants", response_model=List[RestaurantResponse], status_code=status.HTTP_200_OK)
@@ -163,6 +188,31 @@ async def get_saved_restaurants(
         return ordered
 
     return restaurants
+
+
+@router.get("/restaurants/{restaurant_id}", response_model=RestaurantDetailsResponse)
+async def get_restaurant_details(
+        restaurant_id: int = Path(..., description="ID ресторану"),
+        db: db_dependency = None
+):
+    restaurant = db.query(models.Restaurant).filter(models.Restaurant.id == restaurant_id).first()
+    if not restaurant:
+        raise HTTPException(status_code=404, detail="Ресторан не знайдено")
+
+    # Обираємо 6 випадкових страв цього ресторану
+    dishes_qs = db.query(models.Dish).filter(models.Dish.restaurant_id == restaurant_id).limit(6).all()
+    dishes = [DishResponse.from_orm(d) for d in dishes_qs]
+
+    response = RestaurantDetailsResponse(
+        id=restaurant.id,
+        name=restaurant.name,
+        description=restaurant.description,
+        image_url=restaurant.image_url,
+        rating=restaurant.rating,
+        delivery_time=restaurant.delivery_time,
+        dishes=dishes
+    )
+    return response
 
 
 def apply_sorting(query, sort_by: Optional[str] = None):
