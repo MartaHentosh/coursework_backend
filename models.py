@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime
 from sqlalchemy import JSON, DateTime
 
+
 class Users(Base):
     __tablename__ = 'users'
 
@@ -42,7 +43,8 @@ class TextFilter(Base):
     __tablename__ = 'text_filters'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)  # Назва фільтра (напр., "Промоакції", "На виніс", "Тип доставки")
+    name = Column(String, unique=True,
+                  nullable=False)  # Назва фільтра (напр., "Промоакції", "На виніс", "Тип доставки")
     restaurants = relationship('Restaurant', secondary=restaurant_text_filter_table, back_populates='text_filters')
 
 
@@ -59,7 +61,7 @@ class Restaurant(Base):
     min_order = Column(Float, default=0.0)
     distance = Column(Float, default=0.0)
     is_active = Column(Integer, default=1)
-    
+
     categories = relationship('Category', secondary=restaurant_category_table, back_populates='restaurants')
     text_filters = relationship('TextFilter', secondary=restaurant_text_filter_table, back_populates='restaurants')
     dishes = relationship('Dish', back_populates='restaurant')
