@@ -6,23 +6,19 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - sqlite_data:/app/userbase.db
     environment:
       - PYTHONUNBUFFERED=1
     command: >
       bash -c "uvicorn main:app --host 0.0.0.0 --port 8000"
     depends_on:
-      - init_db
+      init_db:
+        condition: service_completed_successfully
 
   init_db:
     build: .
     container_name: database
     volumes:
       - .:/app
-      - sqlite_data:/app/userbase.db
     command: >
       bash -c "python create_database.py"
     restart: "no"
-
-volumes:
-  sqlite_data:
