@@ -5,7 +5,7 @@ mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 ssh-keyscan -H 35.225.117.203 >> ~/.ssh/known_hosts
 
-ssh ubuntu@35.225.117.203 "sudo usermod -aG docker ubuntu" || true
+ssh ubuntu@35.225.117.203 "sudo users" || true
 
 export DOCKER_HOST=ssh://ubuntu@35.225.117.203
 
