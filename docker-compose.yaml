@@ -6,7 +6,7 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
-      - sqlite_data:/app
+      - sqlite_data:/app/userbase.db
     environment:
       - PYTHONUNBUFFERED=1
     command: >
@@ -19,7 +19,7 @@ services:
     container_name: database
     volumes:
       - .:/app
-      - sqlite_data:/app
+      - sqlite_data:/app/userbase.db
     command: >
       bash -c "python create_database.py"
     restart: "no"
