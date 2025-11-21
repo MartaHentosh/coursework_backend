@@ -22,4 +22,4 @@ jobs:
       - name: Run deploy script
         run: |
           chmod +x .ci/deploy-image.sh
-          .ci/deploy-image.sh
+          ./deploy-image.sh
