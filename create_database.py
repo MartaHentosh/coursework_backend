@@ -188,16 +188,29 @@ try:
          "text_filters": ["Акції", "На виніс"]},
     ]
 
-    random.seed(42)
+    dishes_data = [
 
-    for rest_data in restaurants_data:
+        {'name': 'Маргарита', 'description': 'Класична італійська піца з моцарелою', 'price': 110.0, 'weight': 430, 'image_url': 'https://lviv.veteranopizza.com/image/catalog/pizza/margo.jpg', 'restaurant_idx': 0},
+        {'name': 'Пепероні', 'description': 'Піца з пряною салямі', 'price': 120.0, 'weight': 420, 'image_url': 'https://lviv.veteranopizza.com/image/catalog/pizza/peperoni.jpg', 'restaurant_idx': 0},
+        {'name': '4 сири', 'description': 'Піца із сумішшю сирів', 'price': 128.0, 'weight': 445, 'image_url': 'https://street-food.com.ua/wp-content/uploads/2022/10/chetyre-syra.png', 'restaurant_idx': 0},
+        {'name': 'Гавайська', 'description': 'Піца з ананасом і шинкою', 'price': 124.0, 'weight': 430, 'image_url': 'https://lviv.veteranopizza.com/image/catalog/pizza/gavajska.jpg', 'restaurant_idx': 0},
+        {'name': 'Мексиканська', 'description': 'Гостра піца із ковбасками', 'price': 129.0, 'weight': 440, 'image_url': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBrdsWoJGraaDEx4lXXB1j8Dn2PdCmJ219gA&s', 'restaurant_idx': 0},
+        {'name': 'Вегетаріанська', 'description': 'Піца для вегетаріанців', 'price': 112.0, 'weight': 425, 'image_url': 'https://assets.dots.live/misteram-public/0195d7c3-976c-7388-b167-65012c60fe07-826x0.png', 'restaurant_idx': 0},
+
+        {'name': 'Карбонара', 'description': 'Піца з беконом і вершковим соусом', 'price': 134.0, 'weight': 460, 'image_url': 'https://media-v3.dominos.ua/Products/karbonara-300dpi.webp', 'restaurant_idx': 1},
+        {'name': 'Барбекю', 'description': 'Піца із соусом барбекю', 'price': 130.0, 'weight': 435, 'image_url': 'https://media-v3.dominos.ua/Products/bbq-delux-300dpi-min.webp', 'restaurant_idx': 1},
+        {'name': 'Морська', 'description': 'Піца з морепродуктами', 'price': 145.0, 'weight': 420, 'image_url': 'https://media-v3.dominos.ua/Products/Pitsa/Pitsy/beefandCrispy/new/beefandcrispy-pieces.webp', 'restaurant_idx': 1},
+        {'name': 'Аміго', 'description': 'Піца з соусами і двома видами сирів', 'price': 122.0, 'weight': 410, 'image_url': 'https://media-v3.dominos.ua/Products/extravaganzza-slice1-min.webp', 'restaurant_idx': 1},
+        {'name': 'Капрічоза', 'description': 'Піца з ковбасою і грибами', 'price': 138.0, 'weight': 425, 'image_url': 'https://media-v3.dominos.ua/Products/Pitsa/Pitsy/Sweet/06_06/pizza-sweet-website-main.webp', 'restaurant_idx': 1},
+        {'name': 'Неаполітанська', 'description': 'Традиційна піца із томатами, оливками', 'price': 117.0, 'weight': 418, 'image_url': 'https://media-v3.dominos.ua/Products/grill-slice-collageweb-min.webp', 'restaurant_idx': 1},
+
+    ]
+
+    for rest_idx, rest_data in enumerate(restaurants_data):
         category_name = rest_data.pop("category")
         text_filter_names = rest_data.pop("text_filters", [])
-
         category = category_dict[category_name]
-
         distance = round(random.uniform(1.2, 20.0), 1)
-
         restaurant = models.Restaurant(
             name=rest_data["name"],
             description=rest_data["description"],
@@ -209,17 +222,25 @@ try:
             distance=distance,
             is_active=1
         )
-
         restaurant.categories.append(category)
-
         for tf_name in text_filter_names:
             if tf_name in text_filter_dict:
                 restaurant.text_filters.append(text_filter_dict[tf_name])
-
         db.add(restaurant)
-        print(
-            f"Додано ресторан: {rest_data['name']} (відстань: {distance} км, категорія: {category_name}, фільтри: {', '.join(text_filter_names)})")
-
+        db.commit()
+        db.refresh(restaurant)
+        for dish in [d for d in dishes_data if d['restaurant_idx'] == rest_idx]:
+            db.add(models.Dish(
+                name=dish['name'],
+                description=dish['description'],
+                price=dish['price'],
+                weight=dish['weight'],
+                image_url=dish['image_url'],
+                restaurant_id=restaurant.id
+            ))
+        db.commit()
+        print(f"Додано 6 унікальних страв у ресторан: {restaurant.name}")
+    
     db.commit()
 
     print(f"\nГотово! Створено базу даних з:")
