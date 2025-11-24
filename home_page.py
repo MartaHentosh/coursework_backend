@@ -12,7 +12,6 @@ import json
 from datetime import datetime
 from auth import get_current_user
 
-
 router = APIRouter(
     prefix='/home',
     tags=['home']
@@ -75,6 +74,7 @@ class SortOptionResponse(BaseModel):
 class SaveFilterRequest(BaseModel):
     category_ids: Optional[List[int]] = None
     text_filter_ids: Optional[List[int]] = None
+
 
 class SaveFilterResponse(BaseModel):
     search_id: str
@@ -141,33 +141,32 @@ class OrderResponse(BaseModel):
 
 @router.get("/restaurants", response_model=List[RestaurantResponse], status_code=status.HTTP_200_OK)
 async def get_all_restaurants(db: db_dependency):
-
     restaurants = db.query(models.Restaurant).filter(models.Restaurant.is_active == 1).all()
     return restaurants
 
 
-
 @router.get("/restaurants/sort-by", response_model=List[RestaurantResponse], status_code=status.HTTP_200_OK)
 async def get_restaurants_sorted(
-    db: db_dependency,
-    sort_by: str = Query(..., description="Сортування командами: distance_asc/desc, rating_asc/desc, delivery_fee_asc/desc")
+        db: db_dependency,
+        sort_by: str = Query(...,
+                             description="Сортування командами: distance_asc/desc, rating_asc/desc, delivery_fee_asc/desc")
 ):
-
     query = db.query(models.Restaurant).filter(models.Restaurant.is_active == 1)
 
     query = apply_sorting(query, sort_by)
-    
+
     restaurants = query.all()
     return restaurants
 
 
 @router.post("/restaurants/save-filtered", response_model=SaveFilterResponse, status_code=status.HTTP_201_CREATED)
 async def save_filtered_restaurants(
-    request: SaveFilterRequest,
-    db: db_dependency
+        request: SaveFilterRequest,
+        db: db_dependency
 ):
     if not request.category_ids and not request.text_filter_ids:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Потрібно передати номер id category та/або text_filter")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Потрібно передати номер id category та/або text_filter")
 
     if request.category_ids:
         validate_categories(db, request.category_ids)
@@ -200,9 +199,10 @@ async def save_filtered_restaurants(
 
 @router.get("/restaurants/sort-filtered", response_model=List[RestaurantResponse], status_code=status.HTTP_200_OK)
 async def get_saved_restaurants(
-    search_id: str,
-    db: db_dependency,
-    sort_by: Optional[str] = Query(None, description="Сортування командами: distance_asc/desc, rating_asc/desc, delivery_fee_asc/desc")
+        search_id: str,
+        db: db_dependency,
+        sort_by: Optional[str] = Query(None,
+                                       description="Сортування командами: distance_asc/desc, rating_asc/desc, delivery_fee_asc/desc")
 ):
     saved = db.query(models.SavedSearch).filter(models.SavedSearch.id == search_id).first()
     if not saved:
@@ -369,7 +369,6 @@ async def get_order_history(user: dict = Depends(get_current_user), db: db_depen
 
 
 def apply_sorting(query, sort_by: Optional[str] = None):
-
     if not sort_by:
         return query
 
@@ -410,5 +409,3 @@ def validate_text_filters(db: Session, text_filter_ids: List[int]):
             detail=f"Нема текст. фільтрів з ID {missing_ids}"
         )
     return text_filters
-
-
