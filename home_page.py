@@ -10,6 +10,7 @@ import models
 from uuid import UUID
 import json
 from datetime import datetime
+from auth import get_current_user
 
 
 router = APIRouter(
@@ -100,6 +101,40 @@ class RestaurantDetailsResponse(BaseModel):
     delivery_time: Optional[int]
     dishes: List[DishResponse]
 
+    class Config:
+        from_attributes = True
+
+
+class AddToCartRequest(BaseModel):
+    user_id: int
+    dish_id: int
+    quantity: int = 1
+
+
+class CartItemResponse(BaseModel):
+    cart_item_id: int
+    dish_id: int
+    dish_name: str
+    dish_price: float
+    quantity: int
+
+    class Config:
+        from_attributes = True
+
+
+class OrderItemResponse(BaseModel):
+    dish_id: int
+    dish_name: str
+    quantity: int
+    price: float
+    class Config:
+        from_attributes = True
+
+class OrderResponse(BaseModel):
+    id: int
+    created_at: datetime
+    total: float
+    items: list[OrderItemResponse]
     class Config:
         from_attributes = True
 
@@ -197,9 +232,8 @@ async def get_restaurant_details(
 ):
     restaurant = db.query(models.Restaurant).filter(models.Restaurant.id == restaurant_id).first()
     if not restaurant:
-        raise HTTPException(status_code=404, detail="Ресторан не знайдено")
+        raise HTTPException(status_code=404, detail="Такого ресторану не існує")
 
-    # Обираємо 6 випадкових страв цього ресторану
     dishes_qs = db.query(models.Dish).filter(models.Dish.restaurant_id == restaurant_id).limit(6).all()
     dishes = [DishResponse.from_orm(d) for d in dishes_qs]
 
@@ -213,6 +247,125 @@ async def get_restaurant_details(
         dishes=dishes
     )
     return response
+
+
+@router.post('/cart/add', status_code=201)
+async def add_to_cart(
+    request: AddToCartRequest,
+    db: db_dependency
+):
+    user = db.query(models.Users).filter(models.Users.id == request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    dish = db.query(models.Dish).filter(models.Dish.id == request.dish_id).first()
+    if not dish:
+        raise HTTPException(status_code=404, detail="Dish not found")
+
+    cart_item = db.query(models.CartItem).filter(
+        models.CartItem.user_id == request.user_id,
+        models.CartItem.dish_id == request.dish_id
+    ).first()
+
+    if cart_item:
+        cart_item.quantity += request.quantity
+    else:
+        cart_item = models.CartItem(
+            user_id=request.user_id,
+            dish_id=request.dish_id,
+            quantity=request.quantity
+        )
+        db.add(cart_item)
+
+    db.commit()
+    db.refresh(cart_item)
+    return {"cart_item_id": cart_item.id, "quantity": cart_item.quantity}
+
+
+@router.get('/cart/{user_id}', response_model=List[CartItemResponse], status_code=200)
+async def get_cart(user_id: int, db: db_dependency):
+    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    cart_items = db.query(models.CartItem).filter(models.CartItem.user_id == user_id).all()
+    result = []
+    for item in cart_items:
+        result.append(CartItemResponse(
+            cart_item_id=item.id,
+            dish_id=item.dish.id,
+            dish_name=item.dish.name,
+            dish_price=item.dish.price,
+            quantity=item.quantity
+        ))
+    return result
+
+
+@router.delete('/cart/{user_id}/clear', status_code=204)
+async def clear_cart(user_id: int, db: db_dependency):
+    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.query(models.CartItem).filter(models.CartItem.user_id == user_id).delete()
+    db.commit()
+    return None
+
+
+@router.post('/cart/{user_id}/checkout', status_code=201)
+async def checkout_cart(user_id: int, db: db_dependency):
+    user = db.query(models.Users).filter(models.Users.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    cart_items = db.query(models.CartItem).filter(models.CartItem.user_id == user_id).all()
+    if not cart_items:
+        raise HTTPException(status_code=400, detail="Cart is empty")
+    total = sum([item.quantity * item.dish.price for item in cart_items])
+    new_order = models.Order(user_id=user_id, total=total)
+    db.add(new_order)
+    db.commit()
+    db.refresh(new_order)
+    for item in cart_items:
+        order_item = models.OrderItem(
+            order_id=new_order.id,
+            dish_id=item.dish_id,
+            quantity=item.quantity,
+            price=item.dish.price
+        )
+        db.add(order_item)
+    db.query(models.CartItem).filter(models.CartItem.user_id == user_id).delete()
+    db.commit()
+    return {'order_id': new_order.id, 'total': float(total)}
+
+
+@router.get('/profile')
+async def get_profile(user: dict = Depends(get_current_user), db: db_dependency = None):
+    db_user = db.query(models.Users).filter(models.Users.id == user['id']).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "user_id": db_user.id,
+        "username": db_user.username
+    }
+
+
+@router.get('/profile/orders', response_model=list[OrderResponse])
+async def get_order_history(user: dict = Depends(get_current_user), db: db_dependency = None):
+    user_id = user['id']
+    orders = db.query(models.Order).filter(models.Order.user_id == user_id).order_by(models.Order.created_at.desc()).all()
+    result = []
+    for order in orders:
+        items = [OrderItemResponse(
+            dish_id=item.dish_id,
+            dish_name=item.dish.name,
+            quantity=item.quantity,
+            price=item.price
+        ) for item in order.items]
+        result.append(OrderResponse(
+            id=order.id,
+            created_at=order.created_at,
+            total=order.total,
+            items=items
+        ))
+    return result
 
 
 def apply_sorting(query, sort_by: Optional[str] = None):

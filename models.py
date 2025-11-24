@@ -42,7 +42,7 @@ class TextFilter(Base):
     __tablename__ = 'text_filters'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, nullable=False)  # Назва фільтра (напр., "Промоакції", "На виніс", "Тип доставки")
+    name = Column(String, unique=True, nullable=False)
     restaurants = relationship('Restaurant', secondary=restaurant_text_filter_table, back_populates='text_filters')
 
 
@@ -86,3 +86,34 @@ class Dish(Base):
     restaurant_id = Column(Integer, ForeignKey('restaurants.id'), nullable=False)
 
     restaurant = relationship('Restaurant', back_populates='dishes')
+
+
+class CartItem(Base):
+    __tablename__ = 'cart_items'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    dish_id = Column(Integer, ForeignKey('dishes.id'), nullable=False)
+    quantity = Column(Integer, nullable=False, default=1)
+
+    user = relationship('Users')
+    dish = relationship('Dish')
+
+
+class Order(Base):
+    __tablename__ = 'orders'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    total = Column(Float, nullable=False)
+    items = relationship('OrderItem', back_populates='order')
+
+class OrderItem(Base):
+    __tablename__ = 'order_items'
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey('orders.id'), nullable=False)
+    dish_id = Column(Integer, ForeignKey('dishes.id'), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+    order = relationship('Order', back_populates='items')
+    dish = relationship('Dish')
