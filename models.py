@@ -64,6 +64,7 @@ class Restaurant(Base):
 
     categories = relationship('Category', secondary=restaurant_category_table, back_populates='restaurants')
     text_filters = relationship('TextFilter', secondary=restaurant_text_filter_table, back_populates='restaurants')
+    dishes = relationship('Dish', back_populates='restaurant')
 
 
 class SavedSearch(Base):
@@ -74,3 +75,16 @@ class SavedSearch(Base):
     text_filter_ids = Column(JSON, nullable=True)
     restaurant_ids = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class Dish(Base):
+    __tablename__ = 'dishes'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String)
+    price = Column(Float, nullable=False)
+    weight = Column(Float, nullable=True)
+    image_url = Column(String, nullable=True)
+    restaurant_id = Column(Integer, ForeignKey('restaurants.id'), nullable=False)
+
+    restaurant = relationship('Restaurant', back_populates='dishes')
