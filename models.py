@@ -12,6 +12,7 @@ class Users(Base):
     username = Column(String, unique=True)
     email = Column(String, unique=True)
     hashed_password = Column(String)
+    is_admin = Column(Integer, default=0)
 
 
 restaurant_category_table = Table(
