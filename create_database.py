@@ -23,47 +23,48 @@ try:
         {"name": "Бургерні", "image_url": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80"},
         {"name": "Кебабні", "image_url": "https://images.unsplash.com/photo-1626082927389-6cd7cdd6cf45?w=200&q=80"},
         {"name": "Суші", "image_url": "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=200&q=80"},
-        {"name": "Азіатська кухня", "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80"},
+        {"name": "Азіатська кухня",
+         "image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=200&q=80"},
         {"name": "Сніданки", "image_url": "https://images.unsplash.com/photo-1525351484163-7529414344d8?w=200&q=80"},
         {"name": "Круасани", "image_url": "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=200&q=80"},
         {"name": "Кондитерські", "image_url": "https://images.unsplash.com/photo-1558636508-e0db3814bd1d?w=200&q=80"},
     ]
-    
+
     categories = []
     for cat_data in categories_data:
         category = models.Category(**cat_data)
         db.add(category)
         categories.append(category)
         print(f"Додано категорію: {cat_data['name']}")
-    
+
     db.commit()
 
     for cat in categories:
         db.refresh(cat)
-    
+
     category_dict = {cat.name: cat for cat in categories}
-    
+
     text_filters_data = [
         {"name": "Промокоди"},
         {"name": "Акції"},
         {"name": "На виніс"},
         {"name": "Найпопулярніше"},
     ]
-    
+
     text_filters = []
     for filter_data in text_filters_data:
         text_filter = models.TextFilter(**filter_data)
         db.add(text_filter)
         text_filters.append(text_filter)
         print(f"Додано текстовий фільтр: {filter_data['name']}")
-    
+
     db.commit()
-    
+
     for tf in text_filters:
         db.refresh(tf)
-    
+
     text_filter_dict = {tf.name: tf for tf in text_filters}
-    
+
     restaurants_data = [
         {"name": "Піцерія Мілано", "description": "Справжня італійська піца", "image_url": "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80",
          "rating": 4.8, "delivery_time": 30, "delivery_fee": 50.0, "min_order": 200.0, "category": "Піцерії", "text_filters": ["Промокоди", "Найпопулярніше"]},
@@ -321,18 +322,17 @@ try:
     db.add(admin_user)
     print("Додано адміністратора: administrator / admin@example.com / admin123")
     db.commit()
-    
+
     print(f"\nГотово! Створено базу даних з:")
     print(f"   - {len(categories)} категоріями")
     print(f"   - {len(text_filters)} текстовими фільтрами")
     print(f"   - {len(restaurants_data)} ресторанами")
     print(f"   - Всі ресторани мають випадкову відстань від 1.2 до 20 км")
     print(f"   - Всі ресторани зв'язані з категоріями та текстовими фільтрами")
-    
+
 except Exception as e:
     db.rollback()
     print(f"Помилка при створенні бази даних: {e}")
     raise
 finally:
     db.close()
-
