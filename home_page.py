@@ -127,14 +127,17 @@ class OrderItemResponse(BaseModel):
     dish_name: str
     quantity: int
     price: float
+
     class Config:
         from_attributes = True
+
 
 class OrderResponse(BaseModel):
     id: int
     created_at: datetime
     total: float
     items: list[OrderItemResponse]
+
     class Config:
         from_attributes = True
 
@@ -251,8 +254,8 @@ async def get_restaurant_details(
 
 @router.post('/cart/add', status_code=201)
 async def add_to_cart(
-    request: AddToCartRequest,
-    db: db_dependency
+        request: AddToCartRequest,
+        db: db_dependency
 ):
     user = db.query(models.Users).filter(models.Users.id == request.user_id).first()
     if not user:
@@ -350,7 +353,8 @@ async def get_profile(user: dict = Depends(get_current_user), db: db_dependency 
 @router.get('/profile/orders', response_model=list[OrderResponse])
 async def get_order_history(user: dict = Depends(get_current_user), db: db_dependency = None):
     user_id = user['id']
-    orders = db.query(models.Order).filter(models.Order.user_id == user_id).order_by(models.Order.created_at.desc()).all()
+    orders = db.query(models.Order).filter(models.Order.user_id == user_id).order_by(
+        models.Order.created_at.desc()).all()
     result = []
     for order in orders:
         items = [OrderItemResponse(
